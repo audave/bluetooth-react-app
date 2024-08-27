@@ -1,6 +1,7 @@
 import './App.css';
 import {useState} from "react";
 import {useEffect} from "react";
+import bluetooth_uuids from "./bluetooth_variables";
 
 function App() {
     const [device, setDevice] = useState(null);
@@ -8,24 +9,17 @@ function App() {
     const [deviceService, setDeviceService] = useState(null);
     const [characteristic, setCharacteristic] = useState(null);
 
-    navigator.bluetooth.addEventListener('onserviceadded', function (event) {
-        console.log(event)
-    })
-
     const handleButtonPush = async () => {
         const device = await navigator.bluetooth
             .requestDevice({
-                filters: [
-                    {services: ["battery_service"]}
-                ],
-                optionalServices: ['battery_service'],
+                filters: [{ services: ['heart_rate'] }]
             })
         setDevice(device)
         const server = await device.gatt.connect()
         setGattServer(server)
-        const service = await server.getPrimaryService('battery_service');
+        const service = await server.getPrimaryService('heart_rate');
         setDeviceService(service);
-        const characteristic = await service.getCharacteristic('battery_level')
+        const characteristic = await service.getCharacteristic('heart_rate_measurement')
         setCharacteristic(characteristic);
     }
 
@@ -33,7 +27,7 @@ function App() {
         <div className="App">
             <ConnectDeviceButton clickAction={handleButtonPush}/>
             {(device !== null) ? <TextBox customText={device.name}/> : null}
-            {(characteristic !== null) ? <BlueToothDeviceCharateristic characteristic={characteristic}/> : null}
+            {(characteristic !== null) ? <BlueToothDeviceCharateristic characteristic={characteristic} characteristicName = 'Heart Rate'/> : null}
         </div>
     );
 }
@@ -49,30 +43,23 @@ const TextBox = ({customText}) => {
     return (<p>Device: Name {customText}</p>)
 }
 
-const BlueToothDeviceCharateristic = ({characteristic}) => {
+const BlueToothDeviceCharateristic = ({characteristic, characteristicName}) => {
     const [value, setValue] = useState("0")
-    const [count, setCount] = useState(0);
 
-    const test = (event) => {
-        console.log(event.timeStamp);
-        console.log(count);
-        console.log(event);
-        // setValue(event.target.value.getUint8(0));
-        // setCount(count +1)
+    const valueChangedHandler = (event) => {
+        setValue(event.target.value.getUint8(1));
     }
 
     useEffect(() => {
         async function getCharactertisticValue() {
-            characteristic.readValue().then((readValue) => {
-                    setValue(readValue.getUint8(0));
-                }
-            );
+            characteristic.addEventListener('characteristicvaluechanged', valueChangedHandler);
+            await characteristic.startNotifications();
         }
 
         getCharactertisticValue();
     })
-    characteristic.addEventListener('characteristicvaluechanged', test);
-    return (<div><p>Battery Level is {value} %</p></div>)
+
+    return (<div><p>{characteristicName} is {value}</p></div>)
 }
 
 export default App;
