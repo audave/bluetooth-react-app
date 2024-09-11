@@ -1,0 +1,14 @@
+{
+  "intervals": [
+    {
+      "name": "Interval 1",
+      "color": "red",
+      "interval": 15
+    },
+    {
+      "name": "Interval 2",
+      "color": "green",
+      "interval": 10
+    }
+  ]
+}
